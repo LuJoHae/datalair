@@ -23,6 +23,11 @@ def test_zenodo():
         store.assert_ok_satus()
         store.save(zenodo_dataset)
         store.assert_ok_satus()
+
         data = store.load(zenodo_dataset)
         assert type(data) == DatasetDict
-        assert type(data["zenodo-test"]) == pd.DataFrame
+        assert isinstance(data["zenodo-test"], pd.DataFrame)
+
+        data = store.load(zenodo_dataset, mode="filepath")
+        assert type(data) == DatasetDict
+        assert isinstance(data["zenodo-test"], Path)

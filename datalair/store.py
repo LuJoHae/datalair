@@ -3,6 +3,8 @@ import shutil
 import sys
 import pickle
 import json
+from unittest import case
+
 import requests
 import logging
 from random import choices
@@ -100,6 +102,16 @@ def save_dataset_file(dataset_, filename, path):
             dataset_.to_hdf(path.joinpath(filename + ".h5pd"), key=filename, mode='w')
         case _:
             raise IOError("don't know {} of type {}".format(dataset_, type(dataset_)))
+
+
+def get_dataset_file_handle(filepath):
+    match filepath.suffix:
+        case ".h5ad":
+            return open(filepath, mode="b")
+        case ".txt" | ".csv" | ".tsv":
+            return open(filepath, mode="r")
+        case _:
+            raise IOError("don't know {} of type {}".format(filepath, type(filepath)))
 
 
 def load_dataset_file(filepath):
@@ -283,13 +295,21 @@ class Store:
         self._save_datasets_to_temporary_dataset_directory(datasets)
         self._replace_with_temporary_dataset_directory(dataset_function)
 
-    def load(self, dataset_function):
+    def load(self, dataset_function, mode="data"):
         self.assert_ok_satus()
         datasets = DatasetDict()
         for file in self.get_path(dataset_function).glob("*"):
             if file.name == "__metadata__.json":
                 continue
-            datasets["{}".format(file.stem)] = load_dataset_file(file)
+            match mode:
+                case "data":
+                    datasets["{}".format(file.stem)] = load_dataset_file(file)
+                case "handle":
+                    datasets["{}".format(file.stem)] = get_dataset_file_handle(file)
+                case "filepath":
+                    datasets["{}".format(file.stem)] = file.resolve()
+                case _:
+                    raise ValueError("Invalid mode {}!".format(mode))
         if datasets == DatasetDict():
             raise FileExistsError("Dataset does not exist yet in store!")
         return datasets
