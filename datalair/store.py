@@ -3,6 +3,7 @@ import shutil
 import sys
 import pickle
 import json
+import requests
 from random import choices
 from enum import Enum
 from shutil import move, rmtree
@@ -15,10 +16,11 @@ from pathlib import Path
 from functools import partial
 from inspect import signature
 from platform import platform, python_version, python_implementation
+from tqdm import tqdm
 
 # supported file formats
 from anndata import read_h5ad, AnnData
-from pandas import DataFrame
+from pandas import DataFrame, read_csv
 from pandas import read_hdf as read_h5pd
 
 logger = getLogger('datastore')
@@ -61,9 +63,34 @@ def dataset(uuid: str | int):
 def generate_random_uuid():
     return ''.join(choices('0123456789abcdef', k=16))
 
+def download_file(url: str, filepath: Path):
+    # Send GET request with streaming
+    response = requests.get(url, stream=True)
+    total_size = int(response.headers.get('content-length', 0))
+    block_size = 1024  # Size of chunks to download
+
+    # Progress bar
+    with open(str(filepath), 'wb') as file, tqdm(
+            desc=str(filepath),
+            total=total_size,
+            unit='iB',
+            unit_scale=True,
+            unit_divisor=1024,
+    ) as bar:
+        for data in response.iter_content(chunk_size=block_size):
+            file.write(data)
+            bar.update(len(data))
+
+
 def save_dataset_file(dataset_, filename, path):
     match dataset_:
-        case list() | int() | float() | str() | bool() | dict():
+        case str():
+            regex_match = match(r"^https://zenodo.org/record/[0-9]{8}/files/\w*.(\w*)", dataset_)
+            if regex_match is not None:
+                download_file(dataset_, path.joinpath(filename + ".{}".format(regex_match.groups()[0])))
+            else:
+                raise NotImplementedError
+        case list() | int() | float() | bool() | dict():
             pickle.dump(dataset_, open(path.joinpath(filename + ".pkl"), mode="wb"))
         case AnnData():
             dataset_.write_h5ad(path.joinpath(filename + ".h5ad"))
@@ -83,8 +110,10 @@ def load_dataset_file(filepath):
             dataset_ = read_h5pd(filepath)
         case ".json":
             dataset_ = json.load(open(filepath, mode="r"))
+        case ".csv":
+            dataset_ = read_csv(filepath)
         case _:
-            raise IOError("don't know {}".format(filepath))
+            raise IOError("don't know file type {} | {}".format(filepath.suffix, filepath))
     return dataset_
 
 
