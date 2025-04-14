@@ -4,6 +4,7 @@ import sys
 import pickle
 import json
 import requests
+import logging
 from random import choices
 from enum import Enum
 from shutil import move, rmtree
@@ -17,6 +18,7 @@ from functools import partial
 from inspect import signature
 from platform import platform, python_version, python_implementation
 from tqdm import tqdm
+
 
 # supported file formats
 from anndata import read_h5ad, AnnData
@@ -85,7 +87,7 @@ def download_file(url: str, filepath: Path):
 def save_dataset_file(dataset_, filename, path):
     match dataset_:
         case str():
-            regex_match = match(r"^https://zenodo.org/record/[0-9]{8}/files/\w*.(\w*)", dataset_)
+            regex_match = match(r"^https://zenodo.org/records/[0-9]{8}/files/\w*.(\w*)", dataset_)
             if regex_match is not None:
                 download_file(dataset_, path.joinpath(filename + ".{}".format(regex_match.groups()[0])))
             else:

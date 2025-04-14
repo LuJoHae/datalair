@@ -15,7 +15,7 @@ def test_create_store():
 def test_zenodo():
     @dataset(uuid="82b0593c70732101")
     def zenodo_dataset() -> str:
-        return DatasetDict({"zenodo-test": "https://zenodo.org/record/14330132/files/dataset_dummy_nodes.csv"})
+        return DatasetDict({"zenodo-test": "https://zenodo.org/records/14330132/files/dataset_dummy_nodes.csv"})
 
     with tempfile.TemporaryDirectory() as temp_dir:
         store = Store(Path(temp_dir).joinpath("store"))
@@ -26,6 +26,3 @@ def test_zenodo():
         data = store.load(zenodo_dataset)
         assert type(data) == DatasetDict
         assert type(data["zenodo-test"]) == pd.DataFrame
-
-
-
