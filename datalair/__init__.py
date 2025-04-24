@@ -1,1 +1,1 @@
-from .store import dataset, Store, DatasetDict
+from .store import dataset, Store, DatasetDict, DatasetFunction
