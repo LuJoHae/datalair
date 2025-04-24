@@ -3,10 +3,8 @@ import shutil
 import sys
 import pickle
 import json
-from unittest import case
 
 import requests
-import logging
 from random import choices
 from enum import Enum
 from shutil import move, rmtree
@@ -20,6 +18,8 @@ from functools import partial
 from inspect import signature
 from platform import platform, python_version, python_implementation
 from tqdm import tqdm
+from ftplib import FTP
+from typing import Any
 
 
 # supported file formats
@@ -86,14 +86,41 @@ def download_file(url: str, filepath: Path):
             bar.update(len(data))
 
 
+def download_supplementary_from_geo(gse_id: str, local_filename: str, local_dir: Path):
+    ftp_host = "ftp.ncbi.nlm.nih.gov"
+    ftp_dir = "/geo/series/{}nnn/{}/suppl/".format(gse_id[:-3], gse_id)
+
+    # Connect to FTP
+    ftp = FTP(ftp_host)
+    ftp.login()
+    ftp.cwd(ftp_dir)
+
+    files = ftp.nlst()
+
+    os.makedirs(local_dir, exist_ok=True)
+    for filename in files:
+        local_filepath = local_dir.joinpath(filename)
+        with open(local_filepath, 'wb') as f:
+            ftp.retrbinary(f'RETR {filename}', f.write)
+            print(f'Downloaded: {filename}')
+
+    ftp.quit()
+
+
 def save_dataset_file(dataset_, filename, path):
     match dataset_:
         case str():
-            regex_match = match(r"^https://zenodo.org/records/[0-9]{8}/files/\w*.(\w*)", dataset_)
-            if regex_match is not None:
-                download_file(dataset_, path.joinpath(filename + ".{}".format(regex_match.groups()[0])))
+            regex_zenodo = match(r"^https://zenodo.org/records/[0-9]{8}/files/\w*.([a-zA-Z0-9]*)", dataset_)
+            regex_geo = match(r"^GSE[0-9]{5,6}", dataset_)
+            if regex_zenodo is not None:
+                download_file(dataset_, path.joinpath(filename + ".{}".format(regex_zenodo.groups()[0])))
+            elif regex_geo is not None:
+                download_supplementary_from_geo(dataset_, local_filename=filename, local_dir=path)
             else:
                 raise NotImplementedError
+        case Path():
+            assert dataset_.exists(), "Filepath does not exist!"
+            shutil.copy2(dataset_, path.joinpath(filename + ''.join(dataset_.suffixes)))
         case list() | int() | float() | bool() | dict():
             pickle.dump(dataset_, open(path.joinpath(filename + ".pkl"), mode="wb"))
         case AnnData():
@@ -105,30 +132,13 @@ def save_dataset_file(dataset_, filename, path):
 
 
 def get_dataset_file_handle(filepath):
-    match filepath.suffix:
+    match ''.join(filepath.suffixes):
         case ".h5ad":
             return open(filepath, mode="b")
         case ".txt" | ".csv" | ".tsv":
             return open(filepath, mode="r")
         case _:
             raise IOError("don't know {} of type {}".format(filepath, type(filepath)))
-
-
-def load_dataset_file(filepath):
-    match filepath.suffix:
-        case ".pkl":
-            dataset_ = pickle.load(open(filepath, mode="rb"))
-        case ".h5ad":
-            dataset_ = read_h5ad(filepath)
-        case ".h5pd":
-            dataset_ = read_h5pd(filepath)
-        case ".json":
-            dataset_ = json.load(open(filepath, mode="r"))
-        case ".csv":
-            dataset_ = read_csv(filepath)
-        case _:
-            raise IOError("don't know file type {} | {}".format(filepath.suffix, filepath))
-    return dataset_
 
 
 class DatasetDict(dict):
@@ -138,6 +148,43 @@ class DatasetDict(dict):
         if key in self:
             raise KeyError(f"Key '{key}' already exists. Overwriting is not allowed.")
         super().__setitem__(key, value)
+
+
+def read_data_file(filepath: Path) -> Any:
+    match ''.join(filepath.suffixes):
+        case ".pkl":
+            dataset_ = pickle.load(open(filepath, mode="rb"))
+        case ".h5ad":
+            dataset_ = read_h5ad(filepath)
+        case ".h5pd":
+            dataset_ = read_h5pd(filepath)
+        case ".json":
+            dataset_ = json.load(open(filepath, mode="r"))
+        case ".csv" | ".csv.gz" | ".txt.gz":
+            dataset_ = read_csv(filepath)
+        case _:
+            dataset_ = None
+    return dataset_
+
+
+def remove_all_suffixes(path: Path) -> str:
+    full_suffix = ''.join(path.suffixes)
+    return path.name[:-len(full_suffix)] if full_suffix else path.stem
+
+
+def load_dataset_file(filepath: Path | str) -> DatasetDict:
+    filepath = Path(filepath)
+    if filepath.is_file():
+        return read_data_file(filepath)
+    elif filepath.is_dir():
+        dataset_dict = DatasetDict()
+        for file in filepath.iterdir():
+            dataset_dict[remove_all_suffixes(file)] = load_dataset_file(file)
+        return dataset_dict
+    else:
+        raise FileNotFoundError(filepath)
+
+
 
 
 class StoreStatus(Enum):
@@ -303,11 +350,11 @@ class Store:
                 continue
             match mode:
                 case "data":
-                    datasets["{}".format(file.stem)] = load_dataset_file(file)
+                    datasets["{}".format(remove_all_suffixes(file))] = load_dataset_file(file)
                 case "handle":
-                    datasets["{}".format(file.stem)] = get_dataset_file_handle(file)
+                    datasets["{}".format(remove_all_suffixes(file))] = get_dataset_file_handle(file)
                 case "filepath":
-                    datasets["{}".format(file.stem)] = file.resolve()
+                    datasets["{}".format(remove_all_suffixes(file))] = file.resolve()
                 case _:
                     raise ValueError("Invalid mode {}!".format(mode))
         if datasets == DatasetDict():
