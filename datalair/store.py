@@ -34,6 +34,7 @@ class DatasetFunction:
     def __init__(self, function, uuid):
         self._function = function
         self._signature = signature(function)
+        self._store = None
         if isinstance(uuid, int):
             assert 0 <= uuid <= 16 ** 16, "uuid must be between 0 and 16**16"
             uuid = "{:016x}".format(uuid)
@@ -60,8 +61,13 @@ class DatasetFunction:
             "function_signature": repr(self._signature)
         }
 
-    def store_load(self, store, mode="data"):
-        store.load(self, mode=mode)
+    def _set_store(self, store):
+        self._store = store
+
+    def _load(self, mode="data"):
+        if self._store is None:
+            raise RuntimeError("No store set")
+        self.store.load(self, mode=mode)
 
 
 def dataset(uuid: str | int):
