@@ -60,6 +60,9 @@ class DatasetFunction:
             "function_signature": repr(self._signature)
         }
 
+    def store_load(self, store, mode="data"):
+        store.load(self, mode=mode)
+
 
 def dataset(uuid: str | int):
     return partial(DatasetFunction, uuid=uuid)
