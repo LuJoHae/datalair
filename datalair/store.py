@@ -310,7 +310,7 @@ class Store:
                 logger.info("Dependency {name} ({uuid}) already exists!".format(name=dependency.__name__,
                                                                                 uuid=dependency.get_uuid))
             else:
-                self.save_to_store(dependency)
+                self.save(dependency)
 
     def _get_temporary_dataset_directory_path(self):
         return self.get_path().joinpath("__tmp_dataset__")
