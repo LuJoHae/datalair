@@ -86,7 +86,7 @@ def download_file(url: str, filepath: Path):
             bar.update(len(data))
 
 
-def download_supplementary_from_geo(gse_id: str, local_filename: str, local_dir: Path):
+def download_supplementary_from_geo(gse_id: str, local_dir: Path):
     ftp_host = "ftp.ncbi.nlm.nih.gov"
     ftp_dir = "/geo/series/{}nnn/{}/suppl/".format(gse_id[:-3], gse_id)
 
@@ -107,15 +107,37 @@ def download_supplementary_from_geo(gse_id: str, local_filename: str, local_dir:
     ftp.quit()
 
 
+def download_files_from_arrayexpress(arrayexpress_id: str, local_dir: Path):
+
+    ftp_host = "ftp.ebi.ac.uk"
+    ftp_dir = "/biostudies/fire/E-MTAB-/{}/{}/Files".format(arrayexpress_id[-3:], arrayexpress_id)
+    ftp = FTP(ftp_host)
+    ftp.login()
+    ftp.cwd(ftp_dir)
+    files = ftp.nlst()
+
+    os.makedirs(local_dir, exist_ok=True)
+    for filename in files:
+        local_filepath = local_dir.joinpath(filename)
+        with open(local_filepath, 'wb') as f:
+            ftp.retrbinary(f'RETR {filename}', f.write)
+            print(f'Downloaded: {filename}')
+
+    ftp.quit()
+
+
 def save_dataset_file(dataset_, filename, path):
     match dataset_:
         case str():
             regex_zenodo = match(r"^https://zenodo.org/records/[0-9]{8}/files/\w*.([a-zA-Z0-9]*)", dataset_)
             regex_geo = match(r"^GSE[0-9]{5,6}", dataset_)
+            regex_arrayexpress = match(r"^E-MTAB-[0-9]{4}", dataset_)
             if regex_zenodo is not None:
                 download_file(dataset_, path.joinpath(filename + ".{}".format(regex_zenodo.groups()[0])))
             elif regex_geo is not None:
-                download_supplementary_from_geo(dataset_, local_filename=filename, local_dir=path)
+                download_supplementary_from_geo(dataset_, local_dir=path)
+            elif regex_arrayexpress is not None:
+                download_files_from_arrayexpress(dataset_, local_dir=path)
             else:
                 raise NotImplementedError
         case Path():
@@ -179,7 +201,7 @@ def load_dataset_file(filepath: Path | str) -> DatasetDict:
     elif filepath.is_dir():
         dataset_dict = DatasetDict()
         for file in filepath.iterdir():
-            dataset_dict[remove_all_suffixes(file)] = load_dataset_file(file)
+            dataset_dict[file.name] = load_dataset_file(file)
         return dataset_dict
     else:
         raise FileNotFoundError(filepath)
@@ -325,6 +347,7 @@ class Store:
         for key, dataset_ in datasets.items():
             save_dataset_file(dataset_, filename=key, path=self._get_temporary_dataset_directory_path())
 
+
     def _replace_with_temporary_dataset_directory(self, dataset_function):
         rmtree(self.get_path(dataset_function), ignore_errors=True)
         move(self._get_temporary_dataset_directory_path(), self.get_path(dataset_function))
@@ -350,11 +373,11 @@ class Store:
                 continue
             match mode:
                 case "data":
-                    datasets["{}".format(remove_all_suffixes(file))] = load_dataset_file(file)
+                    datasets["{}".format(file.name)] = load_dataset_file(file)
                 case "handle":
-                    datasets["{}".format(remove_all_suffixes(file))] = get_dataset_file_handle(file)
+                    datasets["{}".format(file.name)] = get_dataset_file_handle(file)
                 case "filepath":
-                    datasets["{}".format(remove_all_suffixes(file))] = file.resolve()
+                    datasets["{}".format(file.name)] = file.resolve()
                 case _:
                     raise ValueError("Invalid mode {}!".format(mode))
         if datasets == DatasetDict():
