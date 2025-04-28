@@ -186,7 +186,7 @@ class Lair:
         try:
             dataset.derive(self)
         except Exception as e:
-            self.delete(dataset)
+            self.delete_from_store(dataset)
             raise e
 
     def get_dataset_filepaths(self, dataset: Dataset) -> dict[str, Path]:
