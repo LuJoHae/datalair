@@ -140,7 +140,7 @@ class Lair:
 
     def delete_from_store(self, dataset: Dataset):
         self.assert_ok_satus()
-        self.get_path(dataset).rmdir()
+        shutil.rmtree(self.get_path(dataset))
 
 
     def save_dataset_metadata(self, dataset: Dataset):
