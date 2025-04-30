@@ -1,5 +1,4 @@
 from __future__ import annotations
-import dataclasses
 from abc import ABC, abstractmethod
 from pathlib import Path
 import re
