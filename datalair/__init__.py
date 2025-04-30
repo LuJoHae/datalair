@@ -189,10 +189,15 @@ class Lair:
             self.delete_from_store(dataset)
             raise e
 
-    def safe_derive(self, dataset):
+    def safe_derive(self, dataset, overwrite=False):
         self.assert_ok_satus()
         assert issubclass(type(dataset), Dataset), type(dataset)
-        if not self.dataset_exists(dataset):
+        if self.dataset_exists(dataset) and not overwrite:
+            return None
+        elif self.dataset_exists(dataset) and overwrite:
+            self.delete_from_store(dataset)
+            self.derive(dataset)
+        else:
             self.derive(dataset)
 
     def get_dataset_filepaths(self, dataset: Dataset) -> dict[str, Path]:
