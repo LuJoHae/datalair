@@ -13,6 +13,7 @@ from psutil import virtual_memory
 from importlib.metadata import distributions
 from datetime import datetime
 import dill
+from ftplib import FTP
 
 
 
@@ -204,3 +205,24 @@ class Lair:
         self.assert_dataset_exists(dataset)
         return {filepath.name: filepath for filepath in self.get_path(dataset).iterdir()
                 if filepath.name not in ("__metadata__.json", "__dataset__.pkl")}
+
+
+def download_supplementary_from_geo(gse_id: str, local_dir: Path):
+    ftp_host = "ftp.ncbi.nlm.nih.gov"
+    ftp_dir = "/geo/series/{}nnn/{}/suppl/".format(gse_id[:-3], gse_id)
+
+    # Connect to FTP
+    ftp = FTP(ftp_host)
+    ftp.login()
+    ftp.cwd(ftp_dir)
+
+    files = ftp.nlst()
+
+    os.makedirs(local_dir, exist_ok=True)
+    for filename in files:
+        local_filepath = local_dir.joinpath(filename)
+        with open(local_filepath, 'wb') as f:
+            ftp.retrbinary(f'RETR {filename}', f.write)
+            print(f'Downloaded: {filename}')
+
+    ftp.quit()
