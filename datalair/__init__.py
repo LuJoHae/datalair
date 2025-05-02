@@ -226,3 +226,22 @@ def download_supplementary_from_geo(gse_id: str, local_dir: Path):
             print(f'Downloaded: {filename}')
 
     ftp.quit()
+
+
+def download_files_from_arrayexpress(arrayexpress_id: str, local_dir: Path):
+
+    ftp_host = "ftp.ebi.ac.uk"
+    ftp_dir = "/biostudies/fire/E-MTAB-/{}/{}/Files".format(arrayexpress_id[-3:], arrayexpress_id)
+    ftp = FTP(ftp_host)
+    ftp.login()
+    ftp.cwd(ftp_dir)
+    files = ftp.nlst()
+
+    os.makedirs(local_dir, exist_ok=True)
+    for filename in files:
+        local_filepath = local_dir.joinpath(filename)
+        with open(local_filepath, 'wb') as f:
+            ftp.retrbinary(f'RETR {filename}', f.write)
+            print(f'Downloaded: {filename}')
+
+    ftp.quit()
