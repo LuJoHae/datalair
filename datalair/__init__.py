@@ -45,7 +45,6 @@ class Dataset(ABC):
         raise NotImplementedError()
 
 
-
 class LairStatus(Enum):
     NOT_EXIST = "not_exist"
     NOT_DIRECTORY = "not_directory"
