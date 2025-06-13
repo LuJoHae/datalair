@@ -206,6 +206,19 @@ class Lair:
         return {filepath.name: filepath for filepath in self.get_path(dataset).iterdir()
                 if filepath.name not in ("__metadata__.json", "__dataset__.pkl")}
 
+    def delete_all_empty_datasets_from_store(self, dry_run=False):
+        """This is a cleanup function to remove all the datasets from the lair which failed to be derived."""
+        self.assert_ok_satus()
+        for dataset_dir in self.get_path().iterdir():
+            if not dataset_dir.is_dir():
+                continue
+            if {filepath.name for filepath in dataset_dir.iterdir()}\
+                    .difference({"__dataset__.pkl",  "__metadata__.json"}) == set():
+                if dry_run:
+                    print(f"Need to delete {dataset_dir}")
+                else:
+                    shutil.rmtree(dataset_dir)
+
 
 def download_supplementary_from_geo(gse_id: str, local_dir: Path):
     ftp_host = "ftp.ncbi.nlm.nih.gov"
