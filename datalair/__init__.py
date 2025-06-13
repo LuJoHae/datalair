@@ -14,7 +14,8 @@ from importlib.metadata import distributions
 from datetime import datetime
 import dill
 from ftplib import FTP
-
+import requests
+from tqdm import tqdm
 
 
 class UUID(str):
@@ -218,6 +219,25 @@ class Lair:
                     print(f"Need to delete {dataset_dir}")
                 else:
                     shutil.rmtree(dataset_dir)
+
+
+def download_file(url: str, filepath: Path):
+    # Send GET request with streaming
+    response = requests.get(url, stream=True)
+    total_size = int(response.headers.get('content-length', 0))
+    block_size = 1024  # Size of chunks to download
+
+    # Progress bar
+    with open(str(filepath), 'wb') as file, tqdm(
+            desc=str(filepath),
+            total=total_size,
+            unit='iB',
+            unit_scale=True,
+            unit_divisor=1024,
+    ) as bar:
+        for data in response.iter_content(chunk_size=block_size):
+            file.write(data)
+            bar.update(len(data))
 
 
 def download_supplementary_from_geo(gse_id: str, local_dir: Path):
