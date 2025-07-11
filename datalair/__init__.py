@@ -18,30 +18,18 @@ import requests
 from tqdm import tqdm
 
 
-class UUID(str):
-    _pattern = re.compile(r'^[0-9a-fA-F]{16}$')
-
-    def __new__(cls, value):
-        if not isinstance(value, str):
-            raise TypeError("Hex16String must be created from a string")
-        if not cls._pattern.match(value):
-            raise ValueError(f"'{value}' is not a valid 16-digit hexadecimal string")
-        return str.__new__(cls, value)
-
-
-def generate_random_uuid() -> UUID:
-    return UUID(''.join(choices('0123456789abcdef', k=16)))
-
-
 class Dataset(ABC):
+
+    def __init__(self):
+        if hasattr(self, "_self"):
+            pass
+        elif hasattr(self, "uuid"):
+            self._name = self.uuid
+        else:
+            self._name = self.__class__.__name__
 
     @abstractmethod
     def derive(self, lair) -> None:
-        raise NotImplementedError()
-
-    @property
-    @abstractmethod
-    def uuid(self, output_directory: Path) -> UUID:
         raise NotImplementedError()
 
 
@@ -64,7 +52,7 @@ class Lair:
         if dataset is None:
             return self._path
         elif issubclass(type(dataset), Dataset):
-            return self._path.joinpath(str(dataset.uuid))
+            return self._path.joinpath(str(dataset._name))
         else:
             raise TypeError("Dataset must be a subclass of Dataset!")
 
