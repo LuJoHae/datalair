@@ -36,13 +36,21 @@ def generate_random_uuid() -> UUID:
 
 class Dataset(ABC):
 
-    def __init__(self):
+    def __init__(self, namespace: str | None = None):
         if hasattr(self, "_self"):
-            pass
-        elif hasattr(self, "uuid"):
-            self._name = self.uuid
+            return
+
+        if hasattr(self, "uuid"):
+            self._dataset_name = self.uuid
         else:
-            self._name = self.__class__.__name__
+            self._dataset_name = self.__class__.__name__
+
+        self.namespace = namespace
+
+        if namespace is not None:
+            self._name = "-".join([self.namespace, self._dataset_name])
+        else:
+            self._name = self._dataset_name
 
     @abstractmethod
     def derive(self, lair) -> None:
