@@ -2,9 +2,7 @@
 name = "datalair"
 version = "0.2.0"
 description = ""
-authors = [
-    {name = "Your Name",email = "you@example.com"}
-]
+authors = ["Lukas Jonathan Haeuser <lhaeuser@ethz.ch>"]
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
