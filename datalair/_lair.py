@@ -200,7 +200,7 @@ class Lair:
         self.assert_ok_satus()
         return {
             filepath.name: filepath
-            for filepath in self._archive_path
+            for filepath in self._archive_path.iterdir()
         }
 
     def delete_all_empty_datasets_from_store(self, dry_run: bool = False) -> None:
