@@ -1,20 +1,18 @@
-import uuid
-
 import datalair
 import numpy as np
 import tempfile
 from pathlib import Path
 
-def test_uuid():
+def test_uuid() -> None:
 
     uuid = datalair.UUID("0123456789ABCDEF")
     assert isinstance(uuid, datalair.UUID)
 
-def test_dataset():
+def test_dataset() -> None:
     class DatasetOne(datalair.Dataset):
         uuid = datalair.generate_random_uuid()
 
-        def derive(self, lair) -> None:
+        def derive(self, lair: datalair.Lair) -> None:
             dirpath = lair.get_path(self)
             x = np.linspace(0,1,10)
             np.save(dirpath.joinpath("my_array.npy"), x)
@@ -22,7 +20,7 @@ def test_dataset():
     class DatasetTwo(datalair.Dataset):
         uuid = datalair.generate_random_uuid()
 
-        def derive(self, lair) -> None:
+        def derive(self, lair: datalair.Lair) -> None:
             dirpath = lair.get_path(self)
             dataset_one = DatasetOne()
             lair.derive(dataset_one)

@@ -16,12 +16,14 @@ import dill
 from ftplib import FTP
 import requests
 from tqdm import tqdm
+from typing import Optional, Self, Type, Literal
+from types import TracebackType
 
 
 class UUID(str):
     _pattern = re.compile(r'^[0-9a-fA-F]{16}$')
 
-    def __new__(cls, value):
+    def __new__(cls, value: str) -> Self:
         if not isinstance(value, str):
             raise TypeError("Hex16String must be created from a string")
         if not cls._pattern.match(value):
@@ -33,10 +35,12 @@ def generate_random_uuid() -> UUID:
     return UUID(''.join(choices('0123456789abcdef', k=16)))
 
 
-
 class Dataset(ABC):
+    _dataset_name: str | UUID
+    _namespace: Optional[str]
+    _name: str | UUID
 
-    def __init__(self, namespace: str | None = None):
+    def __init__(self, namespace: Optional[str] = None):
         if hasattr(self, "_self"):
             return
 
@@ -45,15 +49,16 @@ class Dataset(ABC):
         else:
             self._dataset_name = self.__class__.__name__
 
-        self.namespace = namespace
+        self._namespace: Optional[str] = namespace
 
-        if namespace is not None:
-            self._name = "-".join([self.namespace, self._dataset_name])
-        else:
+
+        if self._namespace is None:
             self._name = self._dataset_name
+        else:
+            self._name = "-".join([self._namespace, self._dataset_name])
 
     @abstractmethod
-    def derive(self, lair) -> None:
+    def derive(self, lair: Lair) -> None:
         raise NotImplementedError()
 
 
@@ -66,13 +71,16 @@ class LairStatus(Enum):
 
 
 class Lair:
-    def __init__(self, path: Path = Path("store")):
-        self._path = Path(path).absolute().resolve()
+    def __init__(self, path: Path | str = Path("./lair"), archive_path: Optional[Path | str] = None):
+        self._path: Path = Path(path).absolute().resolve()
+        self._archive_path: Optional[Path] = None
+        if archive_path is not None:
+            self._archive_path = Path(archive_path).absolute().resolve()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Store at \"{self._path}\""
 
-    def get_path(self, dataset: Dataset | None =None):
+    def get_path(self, dataset: Optional[Dataset] = None) -> Path:
         if dataset is None:
             return self._path
         elif issubclass(type(dataset), Dataset):
@@ -80,14 +88,14 @@ class Lair:
         else:
             raise TypeError("Dataset must be a subclass of Dataset!")
 
-    def _get_config_filepath(self):
+    def _get_config_filepath(self) -> Path:
         return self.get_path().joinpath("__config__.json")
 
-    def _create_config_file(self):
+    def _create_config_file(self) -> None:
         config = dict(config="")
         json.dump(config, open(self._get_config_filepath(), "w"))
 
-    def dataset_exists(self, dataset):
+    def dataset_exists(self, dataset: Dataset) -> bool:
         if not issubclass(type(dataset), Dataset):
             raise TypeError("dataset must be a subclass of Dataset! But is {}".format(type(dataset)))
         if not self.get_path(dataset).exists():
@@ -96,41 +104,41 @@ class Lair:
             return False
         return True
 
-    def status(self):
+    def status(self) -> LairStatus:
         if not self.get_path().exists():
             return LairStatus.NOT_EXIST
         if not self._get_config_filepath().exists():
             return LairStatus.MALFORMED
         return LairStatus.OK
 
-    def assert_ok_satus(self):
+    def assert_ok_satus(self) -> None:
         assert self.status() is LairStatus.OK,(
             "Store {store} is not ok! It's status is {status}"
             .format(store=self, status=self.status()))
 
-    def assert_dataset_missing(self, dataset):
+    def assert_dataset_missing(self, dataset: Dataset) -> None:
         self.assert_ok_satus()
         assert self.dataset_exists(dataset) is False, "Dataset {dataset} already exists!".format(dataset=dataset)
 
-    def assert_dataset_exists(self, dataset):
+    def assert_dataset_exists(self, dataset: Dataset) -> None:
         self.assert_ok_satus()
         assert self.dataset_exists(dataset) is True, "Dataset {dataset} does not exist!".format(dataset=dataset)
 
-    def create(self):
+    def create(self) -> None:
         # if self.exists():
         #     raise FileExistsError("Store already exists at {path}".format(path=self.get_path()))
         os.makedirs(self.get_path(), exist_ok=False)
         self._create_config_file()
 
-    def create_if_not_exist(self):
+    def create_if_not_exist(self) -> None:
         if self.status() == LairStatus.NOT_EXIST:
             self.create()
 
-    def delete(self, force=False):
+    def delete(self, force: bool = False) -> None:
         if not force:
             match self.status():
                 case LairStatus.OK:
-                    if bool(os.listdr(self.get_path())):
+                    if bool(os.listdir(self.get_path())):
                         raise IOError("Store has elements in it!")
                 case LairStatus.NOT_EXIST:
                     raise IOError("Store does not exist!")
@@ -139,23 +147,30 @@ class Lair:
         shutil.rmtree(self.get_path())
 
 
-    def check_store_permissions(self):
-        """The first three digits (400) mean that the path points to a directory and the last three digits (700 to 777) encode the file permissions."""
+    def check_store_permissions(self) -> bool:
+        """The first three digits (400) mean that the path points to a directory and the last three digits (700 to 777)
+        encode the file permissions."""
         return 0o040700 <= self.get_path().stat().st_mode <= 0o040777
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         self.assert_ok_satus()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+
+    def __exit__(
+            self,
+            exc_type: Optional[Type[BaseException]],
+            exc_val: Optional[BaseException],
+            exc_tb: Optional[TracebackType],
+    ) -> Literal[False]:
         return False
 
-    def delete_from_store(self, dataset: Dataset):
+    def delete_from_store(self, dataset: Dataset) -> None:
         self.assert_ok_satus()
         shutil.rmtree(self.get_path(dataset))
 
 
-    def save_dataset_metadata(self, dataset: Dataset):
+    def save_dataset_metadata(self, dataset: Dataset) -> None:
         metadata = {
             "python": {
                 "version": sys.version,
@@ -175,7 +190,7 @@ class Lair:
         json.dump(metadata, open(self.get_path(dataset).joinpath("__metadata__.json"), "w"))
 
 
-    def save_dataset_implementation(self, dataset: Dataset):
+    def save_dataset_implementation(self, dataset: Dataset) -> None:
         with open(self.get_path(dataset).joinpath('__dataset__.pkl'), 'wb') as f:
             dill.dump(dataset, file=f)
 
@@ -187,7 +202,7 @@ class Lair:
 
         return dir_path
 
-    def derive(self, dataset):
+    def derive(self, dataset: Dataset) -> None:
         self.assert_ok_satus()
         assert issubclass(type(dataset), Dataset), type(dataset)
         self.assert_dataset_missing(dataset)
@@ -201,7 +216,7 @@ class Lair:
             self.delete_from_store(dataset)
             raise e
 
-    def safe_derive(self, dataset, overwrite=False):
+    def safe_derive(self, dataset: Dataset, overwrite: bool = False) -> None:
         self.assert_ok_satus()
         assert issubclass(type(dataset), Dataset), type(dataset)
         if self.dataset_exists(dataset) and not overwrite:
@@ -218,7 +233,7 @@ class Lair:
         return {filepath.name: filepath for filepath in self.get_path(dataset).iterdir()
                 if filepath.name not in ("__metadata__.json", "__dataset__.pkl")}
 
-    def delete_all_empty_datasets_from_store(self, dry_run=False):
+    def delete_all_empty_datasets_from_store(self, dry_run: bool = False) -> None:
         """This is a cleanup function to remove all the datasets from the lair which failed to be derived."""
         self.assert_ok_satus()
         for dataset_dir in self.get_path().iterdir():
@@ -232,7 +247,7 @@ class Lair:
                     shutil.rmtree(dataset_dir)
 
 
-def download_file(url: str, filepath: Path):
+def download_file(url: str, filepath: Path) -> None:
     # Send GET request with streaming
     response = requests.get(url, stream=True)
     total_size = int(response.headers.get('content-length', 0))
@@ -251,7 +266,7 @@ def download_file(url: str, filepath: Path):
             bar.update(len(data))
 
 
-def download_supplementary_from_geo(gse_id: str, local_dir: Path):
+def download_supplementary_from_geo(gse_id: str, local_dir: Path) -> None:
     ftp_host = "ftp.ncbi.nlm.nih.gov"
     ftp_dir = "/geo/series/{}nnn/{}/suppl/".format(gse_id[:-3], gse_id)
 
@@ -272,7 +287,7 @@ def download_supplementary_from_geo(gse_id: str, local_dir: Path):
     ftp.quit()
 
 
-def download_files_from_arrayexpress(arrayexpress_id: str, local_dir: Path):
+def download_files_from_arrayexpress(arrayexpress_id: str, local_dir: Path) -> None:
 
     ftp_host = "ftp.ebi.ac.uk"
     ftp_dir = "/biostudies/fire/E-MTAB-/{}/{}/Files".format(arrayexpress_id[-3:], arrayexpress_id)
