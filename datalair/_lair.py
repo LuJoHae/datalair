@@ -196,8 +196,10 @@ class Lair:
             if filepath.name not in ("__metadata__.json", "__dataset__.pkl")
         }
 
-    def get_archive_filepaths(self) -> dict[str, Path]:
+    def get_archive_filepaths(self) -> Optional[dict[str, Path]]:
         self.assert_ok_satus()
+        if self._archive_path is None:
+            return None
         return {
             filepath.name: filepath
             for filepath in self._archive_path.iterdir()
