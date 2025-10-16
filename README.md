@@ -1,6 +1,4 @@
-![Datalair Banner](assets/datalair-banner.jpg)
-
-# Datalair
+# <img src="docs/assets/datalair-icon.ico" alt="icon" height="1em" style="vertical-align:middle;"> Datalair
 
 **Datalair** is a lightweight Python library designed to streamline
 the management, processing, and retrieval of data for research or projects.
