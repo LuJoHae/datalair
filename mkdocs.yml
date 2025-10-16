@@ -1,0 +1,23 @@
+site_name: Datalair Documentation
+
+theme:
+  name: material
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: false
+            separate_signature: true
+            show_signature_annotations: true
+
+nav:
+  - Home: index.md
+  - API Reference:
+      - Dataset: api/dataset.md
+      - Lair: api/lair.md
+      - download: api/download.md
+      - UUID: api/UUID.md
