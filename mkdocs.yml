@@ -16,8 +16,11 @@ plugins:
 
 nav:
   - Home: index.md
+  - Get Started: get_started.md
+  - Examples:
+      - Download from GEO: examples/rna-from-geo.md
   - API Reference:
       - Dataset: api/dataset.md
       - Lair: api/lair.md
-      - download: api/download.md
-      - UUID: api/UUID.md
+      - Download: api/download.md
+      - UUID: api/uuid.md

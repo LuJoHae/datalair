@@ -59,14 +59,17 @@ class Dataset(ABC):
 
     def __init__(self, namespace: Optional[str] = None):
         """
-        Initializes the object with a dataset name and an optional namespace. If a
-        namespace is provided, it is combined with the dataset name to form the name
-        of the object. Otherwise, the dataset name is used as the name directly.
-        The dataset name is determined either by the presence of a `uuid` attribute
-        or by the class name of the object.
+        Initializes a class instance. This method sets up internal attributes
+        for the dataset name and namespace. It ensures proper naming of the
+        instance by either using the 'uuid' attribute or the class name. If
+        a namespace is provided, it prefixes the dataset name with the namespace
+        joined by a hyphen. This initialization ensures that duplicate instances
+        are not created by checking for specific pre-existing attributes.
 
-        :param namespace: An optional string used to qualify the dataset name.
-        :type namespace: Optional[str]
+        Args:
+            namespace (Optional[str]): The namespace to be prefixed to the dataset
+                name. If no namespace is provided, the dataset name remains
+                unprefixed.
         """
         if hasattr(self, "_self"):
             return
@@ -86,20 +89,12 @@ class Dataset(ABC):
     @abstractmethod
     def derive(self, lair: "Lair") -> None:
         """
-        Derives specific functionality based on the provided lair instance.
+        Defines an abstract method for deriving behavior specific to a particular
+        implementation of the class. This method must be overridden by subclasses
+        to provide concrete functionality.
 
-        This abstract method serves as a template for subclasses to implement a
-        customized behavior tailored to the provided lair. The method must be
-        overridden in any subclass to ensure proper execution of the desired operations.
-
-        :param lair: The lair instance that this method will utilize to perform its
-            custom implementation. The specific behavior and outcome are determined
-            by subclass implementations.
-        :type lair: Lair
-
-        :return: This method does not return a value as it is expected to perform its
-            operations in place or influence the state of related objects. The
-            implementation must handle any required side effects or processing.
-        :rtype: None
+        Args:
+            lair: Input parameter of type "Lair" that provides the necessary context or
+                data required for the derivation process.
         """
         raise NotImplementedError()
