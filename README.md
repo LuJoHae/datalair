@@ -1,3 +1,5 @@
+![Datalair Banner](assets/datalair-banner.jpg)
+
 # Datalair
 
 **Datalair** is a lightweight Python library designed to streamline
