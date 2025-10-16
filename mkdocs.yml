@@ -25,5 +25,7 @@ nav:
       - Download: api/download.md
       - UUID: api/uuid.md
 
+site_favicon: assets/datalair-icon.ico
+
 extra:
-   favicon: assets/favicon.ico
+   favicon: assets/datalair-icon.ico
