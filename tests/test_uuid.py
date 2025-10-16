@@ -1,5 +1,6 @@
 import datalair
 import pytest
+from typing import Any
 
 def test_uuid() -> None:
     uuid = datalair.UUID("0123456789ABCDEF")
@@ -8,7 +9,8 @@ def test_uuid() -> None:
 
 def test_uuid_type_error() -> None:
     with pytest.raises(TypeError):
-        _ = datalair.UUID(0)
+        bad_hex: Any = 0
+        _ = datalair.UUID(bad_hex)
 
 
 def test_uuid_value_error_length() -> None:

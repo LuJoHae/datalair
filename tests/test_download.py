@@ -1,8 +1,8 @@
 import hashlib
 import datalair
+from pathlib import Path
 
-
-def hash_file(path: str, algo: str = "sha256") -> str:
+def hash_file(path: str | Path, algo: str = "sha256") -> str:
     """Compute the hash of a file using the given algorithm."""
     h = hashlib.new(algo)
     with open(path, "rb") as f:
@@ -12,7 +12,7 @@ def hash_file(path: str, algo: str = "sha256") -> str:
     return h.hexdigest()
 
 
-def test_download_supplementary_from_geo(tmp_path) -> None:
+def test_download_supplementary_from_geo(tmp_path: Path) -> None:
     datalair.download_supplementary_from_geo("GSE25134", tmp_path)
     assert len(list(tmp_path.iterdir())) == 3
     data_filepath = tmp_path.joinpath("GSE25134_RAW.tar")
