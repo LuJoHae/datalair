@@ -2,6 +2,8 @@ site_name: Datalair Documentation
 
 theme:
   name: material
+  logo: assets/datalair-icon.ico
+  favicon: assets/datalair-icon.ico
 
 plugins:
   - search
@@ -24,8 +26,3 @@ nav:
       - Lair: api/lair.md
       - Download: api/download.md
       - UUID: api/uuid.md
-
-site_favicon: assets/datalair-icon.ico
-
-extra:
-   favicon: assets/datalair-icon.ico
