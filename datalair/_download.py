@@ -12,7 +12,6 @@ def download_file(url: str, filepath: Path) -> None:
     total_size = int(response.headers.get("content-length", 0))
     block_size = 1024  # Size of chunks to download
 
-    # Progress bar
     with (
         open(str(filepath), "wb") as file,
         tqdm(
