@@ -24,3 +24,6 @@ nav:
       - Lair: api/lair.md
       - Download: api/download.md
       - UUID: api/uuid.md
+
+extra:
+   favicon: assets/favicon.ico
