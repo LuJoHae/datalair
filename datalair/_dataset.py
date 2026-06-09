@@ -74,7 +74,9 @@ class Dataset(ABC):
         if hasattr(self, "_self"):
             return
 
-        if hasattr(self, "uuid"):
+        if hasattr(self, "name"):
+            self._dataset_name = self.name
+        elif hasattr(self, "uuid"):
             self._dataset_name = self.uuid
         else:
             self._dataset_name = self.__class__.__name__
