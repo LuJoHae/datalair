@@ -57,7 +57,7 @@ class Dataset(ABC):
     _namespace: Optional[str]
     _name: str | UUID
 
-    def __init__(self, namespace: Optional[str] = None):
+    def __init__(self, dataset_name: Optional[str] = None, namespace: Optional[str] = None):
         """
         Initializes a class instance. This method sets up internal attributes
         for the dataset name and namespace. It ensures proper naming of the
@@ -74,8 +74,9 @@ class Dataset(ABC):
         if hasattr(self, "_self"):
             return
 
-        if hasattr(self, "name"):
-            self._dataset_name = self.name
+
+        if dataset_name is not None:
+            self._dataset_name = dataset_name
         elif hasattr(self, "uuid"):
             self._dataset_name = self.uuid
         else:
